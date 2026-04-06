@@ -76,17 +76,20 @@ if (isProduction) {
   });
 }
 
-// ─── Start Server ──────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🖥️  Central Computer RIMS — Server`);
-  console.log(`   Mode:  ${isProduction ? 'Production' : 'Development'}`);
-  console.log(`   Port:  ${PORT}`);
-  if (!isProduction) {
-    console.log(`   API:   http://localhost:${PORT}/api`);
-    console.log(`   UI:    Run "npm run dev:client" for Vite dev server\n`);
-  } else {
-    console.log(`   URL:   http://localhost:${PORT}\n`);
-  }
-});
+// ─── Start Server (Only if not in Vercel) ──────────────────
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🖥️  Central Computer RIMS — Server`);
+    console.log(`   Mode:  ${isProduction ? 'Production' : 'Development'}`);
+    console.log(`   Port:  ${PORT}`);
+    if (!isProduction) {
+      console.log(`   API:   http://localhost:${PORT}/api`);
+      console.log(`   UI:    Run "npm run dev:client" for Vite dev server\n`);
+    } else {
+      console.log(`   URL:   http://localhost:${PORT}\n`);
+    }
+  });
+}
 
+export { app };
 export default app;
