@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH & SYSTEM ─────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(KASIR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cashShifts   CashShift[]   @relation("ShiftUser")
+  closedShifts CashShift[]   @relation("ShiftCloser")
+  activityLogs ActivityLog[]
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  KASIR
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  action       String
+  resourceType String
+  resourceId   Int?
+  details      String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── MASTER DATA ───────────────────────────────────────────
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Customer {
+  id        Int          @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  type      CustomerType @default(RETAIL)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  transactions Transaction[]
+  workOrders   WorkOrder[]
+  receivables  Receivable[]
+}
+
+enum CustomerType {
+  RETAIL
+  MEMBER
+}
+
+model Technician {
+  id             Int      @id @default(autoincrement())
+  name           String
+  phone          String?
+  commissionRate Float    @default(0) // In percentage
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workOrders       WorkOrder[]
+  commissions      Commission[]
+  commissionRecaps CommissionRecap[]
+}
+
+model Agent {
+  id             Int            @id @default(autoincrement())
+  name           String
+  phone          String?
+  commissionRate Float          @default(0) // The value (either % or Rp)
+  commissionType CommissionType @default(PERCENTAGE)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  transactions     Transaction[]
+  commissions      Commission[]
+  commissionRecaps CommissionRecap[]
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int
+  supplierId  Int?
+  sku         String?  @unique
+  name        String
+  description String?
+  cost        Float    @default(0)
+  price       Float    @default(0)
+  stock       Int      @default(0)
+  minStock    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category  @relation(fields: [categoryId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  transactionItems        TransactionItem[]
+  workOrderSparepartItems WorkOrderSparepartItem[]
+  purchaseOrderItems      PurchaseOrderItem[]
+  stockMovements          StockMovement[]
+}
+
+// ─── OPERASIONAL & SHIFT ───────────────────────────────────
+
+model CashShift {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  startTime   DateTime    @default(now())
+  endTime     DateTime?
+  openingCash Float       @default(0)
+  closingCash Float?
+  systemCash  Float?
+  status      ShiftStatus @default(ACTIVE)
+  closedByUserId Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user User @relation("ShiftUser", fields: [userId], references: [id])
+  closedBy User? @relation("ShiftCloser", fields: [closedByUserId], references: [id])
+
+  expenses           Expense[]
+  transactions       Transaction[]
+  workOrders         WorkOrder[]
+  receivablePayments ReceivablePayment[]
+}
+
+enum ShiftStatus {
+  ACTIVE
+  CLOSED
+}
+
+model ExpenseCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  expenses Expense[]
+}
+
+model Expense {
+  id            Int      @id @default(autoincrement())
+  shiftId       Int
+  categoryId    Int
+  amount        Float    @default(0)
+  description   String?
+  paymentMethod String   @default("cash") // cash, transfer
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shift    CashShift       @relation(fields: [shiftId], references: [id])
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+}
+
+// ─── TRANSAKSI & INVENTORY ─────────────────────────────────
+
+model Transaction {
+  id            Int               @id @default(autoincrement())
+  invoiceNumber String            @unique
+  shiftId       Int
+  customerId    Int?
+  agentId       Int?
+  subtotal      Float             @default(0)
+  discountItem  Float             @default(0)
+  discountTotal Float             @default(0)
+  total         Float             @default(0) // subtotal - discountTotal
+  paidAmount    Float             @default(0)
+  paymentMethod String            @default("cash") // cash, transfer
+  status        TransactionStatus @default(LUNAS)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  shift    CashShift @relation(fields: [shiftId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  agent    Agent?    @relation(fields: [agentId], references: [id])
+
+  items TransactionItem[]
+}
+
+enum TransactionStatus {
+  LUNAS
+  PIUTANG
+  VOID
+}
+
+model TransactionItem {
+  id            Int      @id @default(autoincrement())
+  transactionId Int
+  productId     Int
+  qty           Int
+  cost          Float    @default(0) // Captured at moment of transaction
+  price         Float    @default(0)
+  discount      Float    @default(0) // Fixed discount per total item qty
+  subtotal      Float    @default(0) // (price * qty) - discount
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+}
+
+model WorkOrder {
+  id            Int             @id @default(autoincrement())
+  woNumber      String          @unique
+  customerId    Int
+  deviceType    String
+  deviceBrand   String?
+  deviceModel   String?
+  serialNumber  String?
+  complaints    String
+  technicianId  Int
+  shiftId       Int? // Applicable when checkout happens
+  estimatedCost Float           @default(0)
+  status        WorkOrderStatus @default(MASUK)
+  notes         String?
+  subtotal      Float           @default(0)
+  discount      Float           @default(0)
+  total         Float           @default(0)
+  paidAmount    Float           @default(0)
+  paymentMethod String? // null if not paid yet
+  checkoutDate  DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  technician Technician @relation(fields: [technicianId], references: [id])
+  shift      CashShift? @relation(fields: [shiftId], references: [id])
+
+  serviceItems   WorkOrderServiceItem[]
+  sparepartItems WorkOrderSparepartItem[]
+}
+
+enum WorkOrderStatus {
+  MASUK
+  DIKERJAKAN
+  MENUNGGU_PART
+  SELESAI
+  DIAMBIL // Checkout completed status
+}
+
+model WorkOrderServiceItem {
+  id          Int      @id @default(autoincrement())
+  workOrderId Int
+  name        String
+  price       Float    @default(0)
+  qty         Int      @default(1)
+  subtotal    Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderSparepartItem {
+  id          Int      @id @default(autoincrement())
+  workOrderId Int
+  productId   Int
+  cost        Float    @default(0) // Captured dynamically
+  price       Float    @default(0) // Default product price or override
+  qty         Int      @default(1)
+  subtotal    Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+}
+
+model StockMovement {
+  id            Int               @id @default(autoincrement())
+  productId     Int
+  type          StockMovementType
+  qty           Int // Stored as positive absolute value
+  referenceType String // TRANSACTION, WORK_ORDER, PURCHASE_ORDER, MANUAL
+  referenceId   Int?
+  remarks       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model PurchaseOrder {
+  id             Int       @id @default(autoincrement())
+  poNumber       String    @unique
+  supplierId     Int
+  status         POStatus  @default(DRAFT)
+  estimatedTotal Float     @default(0)
+  actualTotal    Float     @default(0)
+  expectedDate   DateTime?
+  receivedDate   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  items PurchaseOrderItem[]
+}
+
+enum POStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  COMPLETED
+}
+
+model PurchaseOrderItem {
+  id              Int      @id @default(autoincrement())
+  purchaseOrderId Int
+  productId       Int
+  qty             Int
+  expectedCost    Float    @default(0)
+  actualQty       Int      @default(0)
+  actualCost      Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+}
+
+// ─── FINANSIAL (PIUTANG & KOMISI) ──────────────────────────
+
+model Receivable {
+  id            Int              @id @default(autoincrement())
+  referenceType String // TRANSACTION, WORK_ORDER
+  referenceId   Int
+  customerId    Int
+  total         Float            @default(0)
+  paidAmount    Float            @default(0)
+  remaining     Float            @default(0)
+  dueDate       DateTime?
+  status        ReceivableStatus @default(OPEN)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  customer Customer            @relation(fields: [customerId], references: [id])
+  payments ReceivablePayment[]
+}
+
+enum ReceivableStatus {
+  OPEN
+  PARTIAL
+  PAID
+}
+
+model ReceivablePayment {
+  id              Int      @id @default(autoincrement())
+  receivableId    Int
+  shiftId         Int
+  amount          Float
+  paymentMethod   String   @default("cash")
+  referenceNumber String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  receivable Receivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  shift      CashShift  @relation(fields: [shiftId], references: [id])
+}
+
+model Commission {
+  id            Int      @id @default(autoincrement())
+  referenceType String // TRANSACTION, WORK_ORDER
+  referenceId   Int
+  targetType    String // TECHNICIAN, AGENT
+  technicianId  Int?
+  agentId       Int?
+  amount        Float    @default(0)
+  recapId       Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  technician Technician?      @relation(fields: [technicianId], references: [id])
+  agent      Agent?           @relation(fields: [agentId], references: [id])
+  recap      CommissionRecap? @relation(fields: [recapId], references: [id])
+}
+
+model CommissionRecap {
+  id           Int              @id @default(autoincrement())
+  targetType   String // TECHNICIAN, AGENT
+  technicianId Int?
+  agentId      Int?
+  period       String // Format: YYYY-MM
+  totalAmount  Float            @default(0)
+  status       CommissionStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  technician  Technician?  @relation(fields: [technicianId], references: [id])
+  agent       Agent?       @relation(fields: [agentId], references: [id])
+  commissions Commission[]
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+}

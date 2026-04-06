@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Premium V2 Palette */
+  --color-v2-green: #10b981;
+  --color-v2-orange: #f59e0b;
+  --color-v2-blue: #3b82f6;
+  --color-v2-noir: #020617;
+  
+  /* Legacy V1 (for backward compat if needed during refactor) */
+  --color-v1-green: #22c55e;
+  --color-v1-orange: #f97316;
+}
+
+@utility bg-v1-gradient {
+  background: linear-gradient(135deg, var(--color-v1-green) 0%, var(--color-v1-orange) 100%);
+}
+
+@utility text-v1-gradient {
+  background: linear-gradient(135deg, var(--color-v1-green) 0%, var(--color-v1-orange) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+@utility glass-noir {
+  background: rgba(2, 6, 23, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+}
+
+@utility glow-emerald {
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.4));
+}
+
+@utility glow-orange {
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.4));
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print-area, #invoice-print-area * {
+    visibility: visible;
+  }
+  #invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  #wo-print-area, #wo-print-area * {
+    visibility: visible;
+  }
+  #wo-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .no-print, .no-print * {
+    display: none !important;
+  }
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+    border: 1.5px solid #f8fafc;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
