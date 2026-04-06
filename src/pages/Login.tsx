@@ -115,8 +115,8 @@ export default function Login() {
 
         {/* Right Side: Branding */}
         <Card className="flex-1 shadow-2xl border-none rounded-[2rem] bg-white flex flex-col items-center justify-center p-12 text-center">
-          <div className="relative mb-6">
-             <img src="/logo.png" alt="Central Computer Logo" className="w-48 h-auto object-contain" />
+          <div className="relative mb-6 flex justify-center items-center">
+             <img src="/logo-v2.png" alt="Central Computer Logo" className="w-40 h-auto object-contain drop-shadow-sm" />
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-black text-[#1e4620] tracking-widest uppercase">CENTRAL COMPUTER</h3>
