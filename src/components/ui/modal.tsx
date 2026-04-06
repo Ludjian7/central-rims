@@ -29,7 +29,7 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={onClose}
       />
       <div className={cn(
-        "relative w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 animate-in fade-in zoom-in duration-200",
+        "relative w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-950/5 animate-in fade-in zoom-in duration-200",
         className
       )}>
         <div className="flex items-center justify-between mb-4 no-print">
@@ -43,7 +43,7 @@ export const Modal: React.FC<ModalProps> = ({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
           {children}
         </div>
       </div>
