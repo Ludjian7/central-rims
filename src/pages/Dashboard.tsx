@@ -111,7 +111,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Central Computer RIMS</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Central Computer Store - Langsa</h1>
           <p className="text-gray-500 text-sm">Dashboard Pemilik — {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-100 rounded-xl text-[10px] font-black text-gray-400 tracking-widest uppercase">
